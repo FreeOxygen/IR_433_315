@@ -1,0 +1,88 @@
+C51 COMPILER V9.59.0.0   AUDIO                                                             10/15/2018 22:09:23 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE AUDIO
+OBJECT MODULE PLACED IN .\Objects\audio.obj
+COMPILER INVOKED BY: E:\Keil\Keil_C51\C51\BIN\C51.EXE user\audio.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\user\Inc) DEBUG OBJ
+                    -ECTEXTEND PRINT(.\Listings\audio.lst) OBJECT(.\Objects\audio.obj)
+
+line level    source
+
+   1          #include "audio.h"
+   2          #include "STC8.H"
+   3          sbit SBT = P1^0; //触发
+   4          bit audio_en;   //语音使能位
+   5          u8 audio_count; //语音计数
+   6          //void Delay5ms()               //@24.000MHz
+   7          //{
+   8          //      unsigned char i, j;
+   9          
+  10          //      _nop_();
+  11          //      _nop_();
+  12          //      i = 156;
+  13          //      j = 213;
+  14          //      do
+  15          //      {
+  16          //              while (--j);
+  17          //      } while (--i);
+  18          //}
+  19          /********************** 语音初始化 ************************/
+  20          void audioInit(void)
+  21          {
+  22   1              P1M0 = 0x00;
+  23   1          P1M1 = 0x00;
+  24   1          P1 = 0xff;
+  25   1      //    P1 = ((10 << 1) | 1);
+  26   1      //    Delay5ms();
+  27   1      //    SBT = 0;
+  28   1      //    Delay5ms();
+  29   1      //    Delay5ms();
+  30   1      //    Delay5ms();
+  31   1      //    Delay5ms();
+  32   1      //    P1 = 0xff;
+  33   1      }
+  34          
+  35          /********************** 语音处理 ************************/
+  36          void AudioSend(void)
+  37          {
+  38   1          if(audio_en)
+  39   1          {
+  40   2              audio_count ++;
+  41   2              if(audio_count == 200)
+  42   2              {
+  43   3                  //计时6ms
+  44   3                  SBT = 0;
+  45   3              }
+  46   2              else if(audio_count == 232)
+  47   2              {
+  48   3                  //拉高P1口
+  49   3                  P1 = 0xff;
+  50   3                  audio_count = 0;
+  51   3                  audio_en = 0;
+  52   3              }
+  53   2          }
+  54   1      }
+C51 COMPILER V9.59.0.0   AUDIO                                                             10/15/2018 22:09:23 PAGE 2   
+
+  55          
+  56          /********************** 语音播放 ************************/
+  57          void AudioPlay(u8 play)
+  58          {
+  59   1          P1 = ((play << 1) | 1);
+  60   1          audio_count = 0;
+  61   1          audio_en = 1;
+  62   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     53    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

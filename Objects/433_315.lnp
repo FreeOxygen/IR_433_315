@@ -1,0 +1,12 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\flash.obj",
+".\Objects\audio.obj",
+".\Objects\display.obj",
+".\Objects\key.obj",
+".\Objects\IR.obj",
+".\Objects\controller.obj",
+".\Objects\PCA.obj",
+".\Objects\RF.obj" 
+TO ".\Objects\433_315" 
+PRINT(".\Listings\433_315.m51") RAMSIZE(256) 

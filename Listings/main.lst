@@ -1,0 +1,291 @@
+C51 COMPILER V9.59.0.0   MAIN                                                              10/15/2018 22:09:23 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Keil\Keil_C51\C51\BIN\C51.EXE user\main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\user\Inc) DEBUG OBJE
+                    -CTEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          
+   2          #include "STC8.H"
+   3          #include "intrins.h"
+   4          #include "flash.h"
+   5          #include "main.h"
+   6          #include "audio.h"
+   7          #include "display.h"
+   8          #include "controller.h"
+   9          #include "key.h"
+  10          #include "IR.h"
+  11          #include "PCA.h"
+  12          #include "RF.h"
+  13          #define BRT     (65536 - FOSC / 115200 / 4) //波特率
+  14          #define Delay_10ms (10);
+  15          
+  16          bit     busy;
+  17          //char *ID;
+  18          u8 g_Statu; //状态标志
+  19          IR_RF IR_RF_data; //数据
+  20          u8 total;
+  21          void UartIsr() interrupt 4 //串口中断
+  22          {
+  23   1              if (TI)
+  24   1              {
+  25   2                      TI = 0;
+  26   2                      busy = 0;
+  27   2              }
+  28   1              if (RI)
+  29   1              {
+  30   2                      RI = 0;
+  31   2              }
+  32   1      }
+  33          
+  34          void UartInit() //串口初始化,定时器1做波特率发生器
+  35          {
+  36   1              SCON = 0x50;
+  37   1              TMOD = 0x00;
+  38   1              TL1 = BRT;
+  39   1              TH1 = BRT >> 8;
+  40   1              TR1 = 1;
+  41   1              AUXR = 0x40;
+  42   1              busy = 0;
+  43   1      }
+  44          
+  45          void UartSend(char dat) //串口发送数据
+  46          {
+  47   1              while (busy);
+  48   1              busy = 1;
+  49   1              SBUF = dat;
+  50   1      }
+  51          
+  52          void main()
+  53          {
+  54   1          u8 temp = 0;
+C51 COMPILER V9.59.0.0   MAIN                                                              10/15/2018 22:09:23 PAGE 2   
+
+  55   1          u8 d_10ms = Delay_10ms;//延时10ms
+  56   1              UartInit(); //串口初始化
+  57   1          IP |= (PS);
+  58   1          IPH |= (PSH);
+  59   1              ES = 1; //串口1中断使能
+  60   1          g_Statu = s_normal; //正常模式  
+  61   1              audioInit();
+  62   1          DisplayInit(); //显示初始化
+  63   1          KeyInit();
+  64   1          controlInit();
+  65   1          PCAInit();
+  66   1          IR_RX_Enable(1);//使能 IR接收
+  67   1          PCACountEnable(1); //使能 PCA
+  68   1          
+  69   1          RF_RX_Enable(1);//使能 RF接收
+  70   1          RF_TX_Init();
+  71   1          EA = 1; //允许总中断
+  72   1          AudioPlay(0);
+  73   1          total = *(u8 code *)(USED_ADDR);//获取数据总数
+  74   1          if(total > 100)//判断数据是否正确
+  75   1          {
+  76   2              total = 0;
+  77   2          }
+  78   1      //    UartSend(total);
+  79   1      //    UartSend(0x5A);
+  80   1              while (1)
+  81   1          {
+  82   2              //定时
+  83   2              if(B_1ms)
+  84   2              {
+  85   3                  B_1ms = 0;
+  86   3                  d_10ms --;
+  87   3                  if(d_10ms == 100)
+  88   3                  {
+  89   4                      d_10ms = 0;
+  90   4                  }
+  91   3              }
+  92   2              
+  93   2              //按键检测
+  94   2              if(d_10ms == 0)
+  95   2              {
+  96   3                  d_10ms = Delay_10ms;
+  97   3                              KeyScan();
+  98   3              }
+  99   2      
+ 100   2              switch(g_Statu)
+ 101   2              {
+ 102   3                  //正常模式
+ 103   3                  case s_normal:
+ 104   3                      //接收红外发送射频
+ 105   3                      if(B_IR_Press == 1)
+ 106   3                      {
+ 107   4                          //红外接收成功
+ 108   4                          B_IR_Press = 0;
+ 109   4      //                    UartSend(((u8 *)&(IR_RX_DATA))[0]);
+ 110   4      //                    UartSend(((u8 *)&(IR_RX_DATA))[1]);
+ 111   4      //                    UartSend(((u8 *)&(IR_RX_DATA))[2]);
+ 112   4      //                    UartSend(((u8 *)&(IR_RX_DATA))[3]);
+ 113   4                          for(temp = 0;temp < total;temp++)
+ 114   4                          {
+ 115   5                              //查找与接收相同红外码数据
+ 116   5      //                        UartSend(*(u8 *)(USED_ADDR_DATA + (temp << 4)+0));
+C51 COMPILER V9.59.0.0   MAIN                                                              10/15/2018 22:09:23 PAGE 3   
+
+ 117   5      //                        UartSend(*(u8 *)(USED_ADDR_DATA + (temp << 4)+1));
+ 118   5      //                        UartSend(*(u8 *)(USED_ADDR_DATA + (temp << 4)+2));
+ 119   5      //                        UartSend(*(u8 *)(USED_ADDR_DATA + (temp << 4)+3));
+ 120   5                              if(IR_RX_DATA == (*(u32 code *)(USED_ADDR_DATA + (temp << 4))))
+ 121   5                              {
+ 122   6      //                            UartSend(0x11);
+ 123   6      //                            UartSend(0x5A);
+ 124   6                                  IR_RF_data = *(IR_RF code *)(USED_ADDR_DATA + (temp << 4));
+ 125   6      //                            UartSend(((u8 *)&IR_RF_data.IR_DATA)[0]);
+ 126   6      //                            UartSend(((u8 *)&IR_RF_data.IR_DATA)[1]);
+ 127   6      //                            UartSend(((u8 *)&IR_RF_data.IR_DATA)[2]);
+ 128   6      //                            UartSend(((u8 *)&IR_RF_data.IR_DATA)[3]);
+ 129   6      //                            if(IR_RX_DATA == IR_RF_data.IR_DATA)
+ 130   6      //                            {
+ 131   6                                      //发送射频
+ 132   6                                      if(IR_RF_data.flag == 0)
+ 133   6                                      {
+ 134   7                                          //433 发送
+ 135   7                                          RF_OUT_DATA_433 = IR_RF_data.RF_DATA;
+ 136   7                                          RF_OUT_4T_433 = IR_RF_data.RF_4T;
+ 137   7                                          RF_TX_Switch_433_315(RF_433_Tx);
+ 138   7                                      }
+ 139   6                                      else if(IR_RF_data.flag == 1)
+ 140   6                                      {
+ 141   7                                          //315 发送
+ 142   7                                          RF_OUT_DATA_315 = IR_RF_data.RF_DATA;
+ 143   7                                          RF_OUT_4T_315 = IR_RF_data.RF_4T;
+ 144   7                                          RF_TX_Switch_433_315(RF_315_Tx);
+ 145   7                                      }
+ 146   6                                      RF_TX();
+ 147   6                                      AudioPlay(4);
+ 148   6      //                            }
+ 149   6                                  break;
+ 150   6                              }
+ 151   5                          }
+ 152   4                      }
+ 153   3                  break;
+ 154   3                  //红外学习
+ 155   3                  case s_IR_Lea:
+ 156   3                      if(B_IR_Press == 1)
+ 157   3                      {
+ 158   4                          //红外接收成功
+ 159   4                          B_IR_Press = 0;
+ 160   4                          DisplayBlinkSet(1);//个位闪烁
+ 161   4                          IR_RF_data.IR_DATA = IR_RX_DATA;
+ 162   4      //                    UartSend(((u8 *)&IR_RF_data.IR_DATA)[0]);
+ 163   4      //                    UartSend(((u8 *)&IR_RF_data.IR_DATA)[1]);
+ 164   4      //                    UartSend(((u8 *)&IR_RF_data.IR_DATA)[2]);
+ 165   4      //                    UartSend(((u8 *)&IR_RF_data.IR_DATA)[3]);
+ 166   4                          RF_RX_Enable(1);//使能射频接收
+ 167   4                          AudioPlay(2);
+ 168   4                          g_Statu = s_RF_Lea; //进入射频学习
+ 169   4                      }
+ 170   3                  break;
+ 171   3                  //射频学习
+ 172   3                  case s_RF_Lea:
+ 173   3                      if(RF_RX_Ok)
+ 174   3                      {
+ 175   4                          //接收到数据
+ 176   4                          DisplayBlinkSet(0);//关闭闪烁
+ 177   4                          RF_RX_Enable(0);//关闭射频接收
+ 178   4                          if(RF_RX_Ok == 1)
+C51 COMPILER V9.59.0.0   MAIN                                                              10/15/2018 22:09:23 PAGE 4   
+
+ 179   4                          {
+ 180   5                              //433 接收成功
+ 181   5                              IR_RF_data.RF_DATA = RF_OUT_DATA_433;
+ 182   5                              IR_RF_data.RF_4T = RF_OUT_4T_433;
+ 183   5                              IR_RF_data.flag = 0;
+ 184   5                          }
+ 185   4                          else if (RF_RX_Ok == 2)
+ 186   4                          {
+ 187   5                              //315 接收成功
+ 188   5                              IR_RF_data.RF_DATA = RF_OUT_DATA_315;
+ 189   5                              IR_RF_data.RF_4T = RF_OUT_4T_315;
+ 190   5                              IR_RF_data.flag = 1;
+ 191   5                          }
+ 192   4      //                    UartSend(((u8 *)&IR_RF_data)[0]);
+ 193   4      //                    UartSend(((u8 *)&IR_RF_data)[1]);
+ 194   4      //                    UartSend(((u8 *)&IR_RF_data)[2]);
+ 195   4      //                    UartSend(((u8 *)&IR_RF_data)[3]);
+ 196   4      //                    UartSend(((u8 *)&IR_RF_data)[4]);
+ 197   4      //                    UartSend(((u8 *)&IR_RF_data)[5]);
+ 198   4      //                    UartSend(((u8 *)&IR_RF_data)[6]);
+ 199   4      //                    UartSend(((u8 *)&IR_RF_data)[7]);
+ 200   4      //                    UartSend(((u8 *)&IR_RF_data)[8]);
+ 201   4      //                    UartSend(((u8 *)&IR_RF_data)[9]);
+ 202   4      //                    UartSend(((u8 *)&IR_RF_data)[10]);
+ 203   4      //                    UartSend(((u8 *)&IR_RF_data)[11]);
+ 204   4      //                    UartSend(((u8 *)&IR_RF_data)[12]);
+ 205   4      //                    UartSend(((u8 *)&IR_RF_data)[13]);
+ 206   4      //                    UartSend(((u8 *)&IR_RF_data)[14]);
+ 207   4      //                    UartSend(((u8 *)&IR_RF_data)[15]);
+ 208   4      //                    UartSend(0x5A);
+ 209   4                          if(write_flash_pr((USED_IAP_ADDR_DATA + (total << 4)),DATA_SIZE,(BYTE*) &IR_RF_data))
+ 210   4                          {
+ 211   5                              //存储成功
+ 212   5                              total ++;
+ 213   5                              IapEraseSector(0x0);
+ 214   5                              IapProgramByte(0x0,total);
+ 215   5                              if(total != (*(u8 code *)(USED_ADDR)))
+ 216   5                              {
+ 217   6                                  IapEraseSector(0x0);
+ 218   6                                  IapProgramByte(0x0,total);
+ 219   6                              }
+ 220   5      //                        UartSend(total);
+ 221   5      //                        UartSend(0x5A);
+ 222   5                              AudioPlay(3);
+ 223   5      //                        IR_RF_data = *(IR_RF code *)(USED_ADDR_DATA + ((total -1) << 4));
+ 224   5      //                        UartSend(((u8 *)&IR_RF_data)[0]);
+ 225   5      //                        UartSend(((u8 *)&IR_RF_data)[1]);
+ 226   5      //                        UartSend(((u8 *)&IR_RF_data)[2]);
+ 227   5      //                        UartSend(((u8 *)&IR_RF_data)[3]);
+ 228   5      //                        UartSend(((u8 *)&IR_RF_data)[4]);
+ 229   5      //                        UartSend(((u8 *)&IR_RF_data)[5]);
+ 230   5      //                        UartSend(((u8 *)&IR_RF_data)[6]);
+ 231   5      //                        UartSend(((u8 *)&IR_RF_data)[7]);
+ 232   5      //                        UartSend(((u8 *)&IR_RF_data)[8]);
+ 233   5      //                        UartSend(((u8 *)&IR_RF_data)[9]);
+ 234   5      //                        UartSend(((u8 *)&IR_RF_data)[10]);
+ 235   5      //                        UartSend(((u8 *)&IR_RF_data)[11]);
+ 236   5      //                        UartSend(((u8 *)&IR_RF_data)[12]);
+ 237   5      //                        UartSend(((u8 *)&IR_RF_data)[13]);
+ 238   5      //                        UartSend(((u8 *)&IR_RF_data)[14]);
+ 239   5      //                        UartSend(((u8 *)&IR_RF_data)[15]);
+ 240   5      //                        UartSend(0x5A);
+C51 COMPILER V9.59.0.0   MAIN                                                              10/15/2018 22:09:23 PAGE 5   
+
+ 241   5                          }
+ 242   4                          else
+ 243   4                          {
+ 244   5                              
+ 245   5                              UartSend(0x33);
+ 246   5                              //存储失败
+ 247   5                          }
+ 248   4                          g_Statu = s_normal;
+ 249   4                      }
+ 250   3                  break;
+ 251   3              }
+ 252   2              //处理函数
+ 253   2                      KeyProcess();
+ 254   2              IRScan();
+ 255   2              RF_433_Scan();
+ 256   2              RF_315_Scan();
+ 257   2          }
+ 258   1      }
+ 259          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    606    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     18       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

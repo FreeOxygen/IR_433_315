@@ -1,0 +1,69 @@
+C51 COMPILER V9.59.0.0   CONTROLLER                                                        10/15/2018 22:09:23 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE CONTROLLER
+OBJECT MODULE PLACED IN .\Objects\controller.obj
+COMPILER INVOKED BY: E:\Keil\Keil_C51\C51\BIN\C51.EXE user\controller.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\user\Inc) DEBU
+                    -G OBJECTEXTEND PRINT(.\Listings\controller.lst) OBJECT(.\Objects\controller.obj)
+
+line level    source
+
+   1          ///时间调度
+   2          #include "controller.h"
+   3          #include "display.h"
+   4          #include "audio.h"
+   5          
+   6          #define SysTick     10000       // 次/秒, 系统滴答频率, 在4000~16000之间
+   7          #define Cut_1ms     10          //1ms  = SysTick / 1000
+   8          /****************************** 自动定义宏 ***********************************/
+   9          
+  10          #define Timer0_Reload   (65536UL - ((FOSC + SysTick/2) / SysTick))     //Timer 0 中断频率, 在config.h
+             -中指定系统滴答频率, 在4000~16000之间.
+  11          
+  12          /*****************************************************************************/
+  13          bit B_1ms;          //1ms标志
+  14          
+  15          u8 cnt_1ms;        //1ms基本计时
+  16          
+  17          ///控制初始化函数
+  18          void controlInit(void)
+  19          {
+  20   1          AUXR &= ~(0x80); //清除定时器0 时钟位
+  21   1          AUXR |= 0x80;    //设置定时器0为1T时钟
+  22   1          TH0 = (u8)(Timer0_Reload / 256);
+  23   1          TL0 = (u8)(Timer0_Reload % 256);
+  24   1          IPH &= ~(PT0H); IP &= ~(PT0); //设置定时器优先级为最低
+  25   1          ET0 = 1;    //定时器0中断允许
+  26   1          TR0 = 1;    //定时器0使能
+  27   1      
+  28   1          cnt_1ms = Cut_1ms; //设置1ms时基
+  29   1          EA = 1;     //打开总中断
+  30   1      }
+  31          
+  32          /********************** Timer0中断函数 ************************/
+  33          void timer0 (void) interrupt 1
+  34          {
+  35   1          if(--cnt_1ms == 0)
+  36   1          {
+  37   2              cnt_1ms = Cut_1ms;
+  38   2              B_1ms = 1;      //1ms标志
+  39   2              DisplayScan();  //显示刷新
+  40   2              AudioSend(); //语音刷新
+  41   2          }
+  42   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    105    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.59.0.0   CONTROLLER                                                        10/15/2018 22:09:23 PAGE 2   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

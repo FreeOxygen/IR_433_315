@@ -1,0 +1,210 @@
+C51 COMPILER V9.59.0.0   FLASH                                                             10/15/2018 22:09:23 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE FLASH
+OBJECT MODULE PLACED IN .\Objects\flash.obj
+COMPILER INVOKED BY: E:\Keil\Keil_C51\C51\BIN\C51.EXE user\flash.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\user\Inc) DEBUG OBJ
+                    -ECTEXTEND PRINT(.\Listings\flash.lst) OBJECT(.\Objects\flash.obj)
+
+line level    source
+
+   1          #include "STC8.H"
+   2          #include "intrins.h"
+   3          #include "flash.h"
+   4          #include "main.h"
+   5          
+   6          #define CMD_IDLE    0               //空闲模式
+   7          #define CMD_READ    1               //IAP字节读命令
+   8          #define CMD_PROGRAM 2               //IAP字节编程命令
+   9          #define CMD_ERASE   3               //IAP扇区擦除命令
+  10          
+  11          #define WT_30M          0x80
+  12          #define WT_24M          0x81
+  13          #define WT_20M          0x82
+  14          #define WT_12M          0x83
+  15          #define WT_6M           0x84
+  16          #define WT_3M           0x85
+  17          #define WT_2M           0x86
+  18          #define WT_1M           0x87
+  19          
+  20          #define ERROR   0
+  21          #define OK      1
+  22          #define USED_BYTE_QTY_IN_ONE_SECTOR   512  //扇区大小
+  23          BYTE xdata protect_buffer[USED_BYTE_QTY_IN_ONE_SECTOR];
+  24          
+  25          void IapIdle()
+  26          {
+  27   1          IAP_CONTR = 0;                              //关闭IAP功能
+  28   1          IAP_CMD = CMD_IDLE;                                //清除命令寄存器
+  29   1          IAP_TRIG = 0;                               //清除触发寄存器
+  30   1          IAP_ADDRH = 0x80;                           //将地址设置到非IAP区域
+  31   1          IAP_ADDRL = 0;
+  32   1      }
+  33          
+  34          /*----------------------------
+  35          从ISP/IAP/EEPROM区域读取一字节
+  36          ----------------------------*/
+  37          BYTE IapReadByte(WORD addr)
+  38          {
+  39   1          BYTE dat;
+  40   1      
+  41   1          IAP_CONTR = WT_24M;                         //使能IAP
+  42   1          IAP_CMD = CMD_READ;                                //设置IAP读命令
+  43   1          IAP_ADDRL = addr;                           //设置IAP低地址
+  44   1          IAP_ADDRH = addr >> 8;                      //设置IAP高地址
+  45   1          IAP_TRIG = 0x5a;                            //写触发命令(0x5a)
+  46   1          IAP_TRIG = 0xa5;                            //写触发命令(0xa5)
+  47   1          _nop_();
+  48   1          dat = IAP_DATA;                             //读IAP数据
+  49   1          IapIdle();                                  //关闭IAP功能
+  50   1      
+  51   1          return dat;
+  52   1      }
+  53          
+  54          /*----------------------------
+C51 COMPILER V9.59.0.0   FLASH                                                             10/15/2018 22:09:23 PAGE 2   
+
+  55          写一字节数据到ISP/IAP/EEPROM区域
+  56          ----------------------------*/
+  57          void IapProgramByte(WORD addr, BYTE dat)
+  58          {
+  59   1          IAP_CONTR = WT_24M;                         //使能IAP
+  60   1          IAP_CMD = CMD_PROGRAM;                                //设置IAP写命令
+  61   1          IAP_ADDRL = addr;                           //设置IAP低地址
+  62   1          IAP_ADDRH = addr >> 8;                      //设置IAP高地址
+  63   1          IAP_DATA = dat;                             //写IAP数据
+  64   1          IAP_TRIG = 0x5a;                            //写触发命令(0x5a)
+  65   1          IAP_TRIG = 0xa5;                            //写触发命令(0xa5)
+  66   1          _nop_();
+  67   1          IapIdle();                                  //关闭IAP功能
+  68   1      }
+  69          
+  70          /*----------------------------
+  71          扇区擦除 512字节一个扇区
+  72          ----------------------------*/
+  73          void IapEraseSector(WORD addr)
+  74          {
+  75   1          IAP_CONTR = WT_24M;                         //使能IAP
+  76   1          IAP_CMD = CMD_ERASE;                                //设置IAP擦除命令
+  77   1          IAP_ADDRL = addr;                           //设置IAP低地址
+  78   1          IAP_ADDRH = addr >> 8;                      //设置IAP高地址
+  79   1          IAP_TRIG = 0x5a;                            //写触发命令(0x5a)
+  80   1          IAP_TRIG = 0xa5;                            //写触发命令(0xa5)
+  81   1          _nop_();                                    //
+  82   1          IapIdle();                                  //关闭IAP功能
+  83   1      }
+  84          
+  85          
+  86          /* 写数据进 数据Flash存储器, 只在同一个扇区内写，不保留原有数据 */
+  87          /* begin_addr,被写数据Flash开始地址；counter,连续写多少个字节； array[]，数据来源  
+             - */
+  88          //BYTE sequential_write_flash_in_one_sector(WORD begin_addr, WORD counter, BYTE array[])
+  89          //{
+  90          //    WORD i = 0;
+  91          //    WORD in_sector_begin_addr = 0;
+  92          //    WORD sector_addr = 0;
+  93          
+  94          //    /* 判是否是有效范围,此函数不允许跨扇区操作 */
+  95          //    if(counter > USED_BYTE_QTY_IN_ONE_SECTOR)
+  96          //        return  ERROR;
+  97          //    in_sector_begin_addr = begin_addr & 0x01ff;
+  98          //    if((in_sector_begin_addr + counter) > USED_BYTE_QTY_IN_ONE_SECTOR)
+  99          //        return ERROR;
+ 100          
+ 101          //    /* 擦除 要修改/写入 的扇区 */
+ 102          //    IapEraseSector(begin_addr);
+ 103          
+ 104          //    for(i=0; i<counter; i++)
+ 105          //    {
+ 106          //        /* 写一个字节 */
+ 107          //        IapProgramByte(begin_addr, array[i]);
+ 108          //        /*  比较对错 */
+ 109          //        if (SendData(IapReadByte(begin_addr)) != array[i])
+ 110          //        {
+ 111          //            IapIdle();
+ 112          //            return ERROR;
+ 113          //        }
+ 114          //        begin_addr++;
+ 115          //    }
+C51 COMPILER V9.59.0.0   FLASH                                                             10/15/2018 22:09:23 PAGE 3   
+
+ 116          //    IapIdle();
+ 117          //    return  OK;
+ 118          //}
+ 119          
+ 120          /* 写数据进数据Flash存储器(EEPROM), 只在同一个扇区内写，保留同一扇区中不需修�
+             -��的数据    */
+ 121          /* begin_addr,被写数据Flash开始地址；counter,连续写多少个字节； array[]，数据来源  
+             -     */
+ 122          BYTE write_flash_pr(WORD begin_addr, WORD counter, BYTE* array)
+ 123          {
+ 124   1          WORD i = 0;
+ 125   1          WORD in_sector_begin_addr = 0;
+ 126   1          WORD sector_addr = 0;
+ 127   1          WORD byte_addr = 0;
+ 128   1          /* 判是否是有效范围,此函数不允许跨扇区操作 */
+ 129   1          if(counter > USED_BYTE_QTY_IN_ONE_SECTOR)
+ 130   1              return ERROR;
+ 131   1          in_sector_begin_addr = begin_addr & 0x01ff;
+ 132   1          /* 假定从扇区的第0个字节开始，到USED_BYTE_QTY_IN_ONE_SECTOR-1个字节结束,后面部�
+             -�不用,程序易编写 */
+ 133   1          if((in_sector_begin_addr + counter) > USED_BYTE_QTY_IN_ONE_SECTOR)
+ 134   1              return ERROR;
+ 135   1      
+ 136   1          /* 将该扇区数据 0 - (USED_BYTE_QTY_IN_ONE_SECTOR-1) 字节数据读入缓冲区保护 */
+ 137   1          sector_addr = (begin_addr & 0xfe00);
+ 138   1          byte_addr = sector_addr;
+ 139   1      
+ 140   1          //读取整页数据
+ 141   1          for(i = 0; i < USED_BYTE_QTY_IN_ONE_SECTOR; i++)
+ 142   1          {
+ 143   2              protect_buffer[i] = IapReadByte(byte_addr++);
+ 144   2          }
+ 145   1      
+ 146   1          /* 将要写入的数据写入保护缓冲区的相应区域,其余部分保留 */
+ 147   1          for(i = 0; i < counter; i++)
+ 148   1          {
+ 149   2              protect_buffer[in_sector_begin_addr++] = array[i];
+ 150   2          }
+ 151   1          
+ 152   1      //    for(i = 0; i < USED_BYTE_QTY_IN_ONE_SECTOR; i++)
+ 153   1      //    {
+ 154   1      //        UartSend(protect_buffer[i]);
+ 155   1      //    }
+ 156   1          /* 擦除 要修改/写入 的扇区 */
+ 157   1          IapEraseSector(sector_addr);
+ 158   1      
+ 159   1          /* 将保护缓冲区的数据写入 Data Flash, EEPROM */
+ 160   1          byte_addr = sector_addr;
+ 161   1          for(i = 0; i< USED_BYTE_QTY_IN_ONE_SECTOR; i++)
+ 162   1          {
+ 163   2              /* 写一个字节 */
+ 164   2              IapProgramByte(byte_addr + i, protect_buffer[i]);
+ 165   2              /*  比较对错 */
+ 166   2              if (IapReadByte(byte_addr + i) != protect_buffer[i])
+ 167   2              {
+ 168   3                  IapIdle();
+ 169   3                  return ERROR;
+ 170   3              }
+ 171   2      //        byte_addr++;
+ 172   2          }
+ 173   1          IapIdle();
+ 174   1          return OK;
+C51 COMPILER V9.59.0.0   FLASH                                                             10/15/2018 22:09:23 PAGE 4   
+
+ 175   1      }
+ 176          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    374    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    512    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      13
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

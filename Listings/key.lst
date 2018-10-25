@@ -1,0 +1,287 @@
+C51 COMPILER V9.59.0.0   KEY                                                               10/15/2018 22:09:23 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\key.obj
+COMPILER INVOKED BY: E:\Keil\Keil_C51\C51\BIN\C51.EXE user\key.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\user\Inc) DEBUG OBJEC
+                    -TEXTEND PRINT(.\Listings\key.lst) OBJECT(.\Objects\key.obj)
+
+line level    source
+
+   1          #include "key.h"
+   2          #include "display.h"
+   3          #include "RF.h"
+   4          #include "audio.h"
+   5          #define shortDwn (10) //短按计数
+   6          #define longDwn (50) //长按计数
+   7          //按键按下为0
+   8          sbit K1 = P3^3;
+   9          sbit K2 = P3^4;
+  10          sbit K3 = P3^5;
+  11          sbit K4 = P3^6;
+  12          
+  13          typedef struct {
+  14              u8 keySD : 1; //短按
+  15              u8 keyLD : 1; //长按
+  16              u8 keyFg : 1;
+  17              u8 keyCn;
+  18          }key_t;
+  19          
+  20          key_t xdata keyArry[4];
+  21          /**********************  按键初始化 ************************/
+  22          void KeyInit(void)
+  23          {
+  24   1          u8 i = 0;
+  25   1          P3M0 = 0x00;
+  26   1          P3M1 = 0x00;
+  27   1          //初始化所有按键
+  28   1          for(i = 0; i < 4; i++)
+  29   1          {
+  30   2              keyArry[i].keySD = 0;
+  31   2              keyArry[i].keyLD = 0;
+  32   2              keyArry[i].keyFg = 0;
+  33   2              keyArry[i].keyCn = 0;
+  34   2          }
+  35   1      }
+  36          /**********************  按键扫描 ************************/
+  37          void KeyScan(void)
+  38          {
+  39   1          //按键1***********************************
+  40   1          if(!K1)
+  41   1          {
+  42   2              //按键按下
+  43   2              if(keyArry[0].keyFg)
+  44   2              {
+  45   3                  //按键按下开始计数
+  46   3                  keyArry[0].keyCn ++;
+  47   3                  //长按
+  48   3                  if(keyArry[0].keyCn > longDwn)
+  49   3                  {
+  50   4                      keyArry[0].keyLD = 1;
+  51   4                  }
+  52   3              }
+  53   2              else
+  54   2              {
+C51 COMPILER V9.59.0.0   KEY                                                               10/15/2018 22:09:23 PAGE 2   
+
+  55   3                  //按键第一次被按下
+  56   3                  keyArry[0].keyFg = 1;
+  57   3              }
+  58   2          }
+  59   1          else
+  60   1          {
+  61   2              //按键松开
+  62   2             if((keyArry[0].keyLD == 0) && (keyArry[0].keyCn > shortDwn))
+  63   2             {
+  64   3                 //短按
+  65   3                 keyArry[0].keySD = 1;
+  66   3             }
+  67   2              //清除按键值
+  68   2              keyArry[0].keyFg = 0;
+  69   2              keyArry[0].keyCn = 0;
+  70   2              keyArry[0].keyLD = 0;
+  71   2          }
+  72   1          
+  73   1          //按键2********************************
+  74   1          if(!K2)
+  75   1          {
+  76   2              //按键按下
+  77   2              if(keyArry[1].keyFg)
+  78   2              {
+  79   3                  //按键按下开始计数
+  80   3                  keyArry[1].keyCn ++;
+  81   3                  //长按
+  82   3                  if(keyArry[1].keyCn > longDwn)
+  83   3                  {
+  84   4                      keyArry[1].keyLD = 1;
+  85   4                  }
+  86   3              }
+  87   2              else
+  88   2              {
+  89   3                  //按键第一次被按下
+  90   3                  keyArry[1].keyFg = 1;
+  91   3              }
+  92   2          }
+  93   1          else
+  94   1          {
+  95   2              //按键松开
+  96   2             if((keyArry[1].keyLD == 0) && (keyArry[1].keyCn > shortDwn))
+  97   2             {
+  98   3                 //短按
+  99   3                 keyArry[1].keySD = 1;
+ 100   3             }
+ 101   2              //清除按键值
+ 102   2              keyArry[1].keyFg = 0;
+ 103   2              keyArry[1].keyCn = 0;
+ 104   2              keyArry[1].keyLD = 0;
+ 105   2          }
+ 106   1          
+ 107   1          //按键3********************************
+ 108   1          if(!K3)
+ 109   1          {
+ 110   2              //按键按下
+ 111   2              if(keyArry[2].keyFg)
+ 112   2              {
+ 113   3                  //按键按下开始计数
+ 114   3                  keyArry[2].keyCn ++;
+ 115   3                  //长按
+ 116   3                  if(keyArry[2].keyCn > longDwn)
+C51 COMPILER V9.59.0.0   KEY                                                               10/15/2018 22:09:23 PAGE 3   
+
+ 117   3                  {
+ 118   4                      keyArry[2].keyLD = 1;
+ 119   4                  }
+ 120   3              }
+ 121   2              else
+ 122   2              {
+ 123   3                  //按键第一次被按下
+ 124   3                  keyArry[2].keyFg = 1;
+ 125   3              }
+ 126   2          }
+ 127   1          else
+ 128   1          {
+ 129   2              //按键松开
+ 130   2              if((keyArry[2].keyLD == 0) && (keyArry[2].keyCn > shortDwn))
+ 131   2              {
+ 132   3                  //短按
+ 133   3                  keyArry[2].keySD = 1;
+ 134   3              }
+ 135   2              //清除按键值
+ 136   2              keyArry[2].keyFg = 0;
+ 137   2              keyArry[2].keyCn = 0;
+ 138   2              keyArry[2].keyLD = 0;
+ 139   2          }
+ 140   1          
+ 141   1          //按键4********************************
+ 142   1          if(!K4)
+ 143   1          {
+ 144   2              //按键按下
+ 145   2              if(keyArry[3].keyFg)
+ 146   2              {
+ 147   3                  //按键按下开始计数
+ 148   3                  keyArry[3].keyCn ++;
+ 149   3                  //长按
+ 150   3                  if(keyArry[3].keyCn > longDwn)
+ 151   3                  {
+ 152   4                      keyArry[3].keyLD = 1;
+ 153   4                  }
+ 154   3              }
+ 155   2              else
+ 156   2              {
+ 157   3                  //按键第一次被按下
+ 158   3                  keyArry[3].keyFg = 1;
+ 159   3              }
+ 160   2          }
+ 161   1          else
+ 162   1          {
+ 163   2              //按键松开
+ 164   2              if((keyArry[3].keyLD == 0) && (keyArry[3].keyCn > shortDwn))
+ 165   2              {
+ 166   3                  //短按
+ 167   3                  keyArry[3].keySD = 1;
+ 168   3              }
+ 169   2              //清除按键值
+ 170   2              keyArry[3].keyFg = 0;
+ 171   2              keyArry[3].keyCn = 0;
+ 172   2              keyArry[3].keyLD = 0;
+ 173   2          }
+ 174   1      }
+ 175          /**********************  按键处理 ************************/
+ 176          u8 temp = 0;
+ 177          void KeyProcess(void)
+ 178          {
+C51 COMPILER V9.59.0.0   KEY                                                               10/15/2018 22:09:23 PAGE 4   
+
+ 179   1          //**********K1
+ 180   1          if(keyArry[0].keySD)
+ 181   1          {
+ 182   2              //处理短按键
+ 183   2              keyArry[0].keySD = 0;
+ 184   2              if(g_Statu == s_normal)
+ 185   2              {
+ 186   3                  //进入设置模式
+ 187   3                  DisplayBlinkSet(3);
+ 188   3                  g_Statu = s_IR_Lea;//进入IR学习模式
+ 189   3                  AudioPlay(1);
+ 190   3              }
+ 191   2              
+ 192   2              // temp ++;
+ 193   2              // DisplaySet(temp);
+ 194   2              // RF_RX_Enable(0);
+ 195   2              // RF_TX_Switch_433_315(RF_433_Tx);
+ 196   2              // RF_TX();
+ 197   2          }
+ 198   1          
+ 199   1          //**********K2
+ 200   1          if(keyArry[1].keySD)
+ 201   1          {
+ 202   2              //处理短按键
+ 203   2              keyArry[1].keySD = 0;
+ 204   2              temp --;
+ 205   2              DisplaySet(temp);
+ 206   2              RF_RX_Enable(1);
+ 207   2          }
+ 208   1          
+ 209   1          //**********K3
+ 210   1          if(keyArry[2].keySD)
+ 211   1          {
+ 212   2              //处理短按键
+ 213   2              keyArry[2].keySD = 0;
+ 214   2              temp ++;
+ 215   2              DisplaySet(temp);
+ 216   2              AudioPlay(temp);
+ 217   2      //        RF_RX_Enable(0);
+ 218   2      //        RF_TX_Switch_433_315(RF_315_Tx);
+ 219   2      //        RF_TX();
+ 220   2          }
+ 221   1          
+ 222   1          //**********K4
+ 223   1          if(keyArry[3].keySD)
+ 224   1          {
+ 225   2              //处理短按键
+ 226   2              keyArry[3].keySD = 0;
+ 227   2              temp --;
+ 228   2              DisplaySet(temp);
+ 229   2          }
+ 230   1          
+ 231   1          //长按键
+ 232   1          //**********k1
+ 233   1          if(keyArry[0].keyLD)
+ 234   1          {
+ 235   2              //处理短按键`
+ 236   2          }
+ 237   1          
+ 238   1          //**********k2
+ 239   1          if(keyArry[1].keyLD)
+ 240   1          {
+C51 COMPILER V9.59.0.0   KEY                                                               10/15/2018 22:09:23 PAGE 5   
+
+ 241   2              //处理短按键
+ 242   2          }
+ 243   1          
+ 244   1          //**********k3
+ 245   1          if(keyArry[2].keyLD)
+ 246   1          {
+ 247   2              //处理短按键
+ 248   2          }
+ 249   1          
+ 250   1          //**********k4
+ 251   1          if(keyArry[3].keyLD)
+ 252   1          {
+ 253   2              //处理短按键
+ 254   2          }
+ 255   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    526    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
